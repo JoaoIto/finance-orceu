@@ -1,0 +1,163 @@
+--- Page 1 ---
+ 1  
+Teste  Técnico  —  Backend  Financeiro  
+Contexto  
+O  Orceu  está  evoluindo  seu  ecossistema  de  gestão  para  construção  civil  e  o  próximo  
+módulo
+ 
+em
+ 
+desenvolvimento
+ 
+é
+ 
+o
+ 
+Financeiro.
+ 
+Como  referência  funcional  e  estrutural  de  API,  utilize  a  documentação  oﬁcial  do  Nibo:  https://nibo.readme.io/reference/como-utilizar-a-api 
+Neste  desaﬁo,  você  deve  utilizar  a  mesma  nomenclatura  de  entidades  e  conceitos  
+do
+ 
+Nibo
+,
+ 
+adaptando
+ 
+a
+ 
+implementação
+ 
+para
+ 
+o
+ 
+contexto
+ 
+do
+ 
+Orceu.
+ 
+ 
+Objetivo  
+Construir  uma  POC  (Prova  de  Conceito)  backend  para  o  módulo  ﬁnanceiro  do  Orceu,  
+focando
+ 
+em
+ 
+agendamentos
+ 
+ﬁnanceiros
+ 
+(contas
+ 
+a
+ 
+pagar
+ 
+e
+ 
+a
+ 
+receber)
+.
+ 
+A  solução  deve  demonstrar:  
+●  modelagem  de  domínio  ●  organização  arquitetural  ●  consistência  de  regras  de  negócio  ●  clareza  de  API  ●  capacidade  de  abstrair  um  ERP  real  
+ 
+Stack  obrigatória  
+●  Python  ●  FastAPI  ●  PostgreSQL  ●  Docker  Compose  ●  Clean  Architecture  ●  DDD  ●  CQRS  
+ 
+ 
+--- Page 2 ---
+ 2  
+🚀  Abordagem  obrigatória  (IA-Driven  Development)  
+Você  DEVE  utilizar  ferramentas  de  desenvolvimento  assistido  por  IA ,  como:  
+●  Cursor  ●  Claude  Code  ●  GitHub  Copilot  ●  ou  similares  
+A  ideia  não  é  evitar  IA  —  é  avaliar  sua  capacidade  de  usar  IA  como  alavanca  de  
+produtividade
+ 
+e
+ 
+engenharia
+.
+ 
+O  que  esperamos  ver:  
+Você  deve  estruturar  o  projeto  com  base  em  artefatos  de  engenharia,  como:  
+●  PRD  (Product  Requirements  Document)  ●  Especiﬁcação  técnica  (Specs)  ●  Plano  de  execução  (Tasks  /  Plan)  ●  Deﬁnição  de  contexto  para  IA  (prompts,  instruções,  etc)  
+ 
+📄  Entregáveis  adicionais  obrigatórios  (IA)  
+Dentro  do  repositório,  incluir  uma  pasta:  
+/docs   
+Com  os  seguintes  arquivos:  
+1.  PRD  
+Descrevendo:  
+●  problema  ●  objetivo  ●  escopo  ●  usuários  ●  funcionalidades  
+2.  Technical  Spec  
+Descrevendo:  
+ 
+--- Page 3 ---
+ 3  ●  arquitetura  ●  decisões  técnicas  ●  modelagem  de  dados  ●  organização  de  camadas  
+3.  Plano  de  Execução  
+●  backlog  de  tarefas  ●  ordem  de  implementação  ●  estratégia  de  entrega  
+4.  Uso  de  IA  
+Descrevendo:  
+●  quais  ferramentas  utilizou  ●  como  utilizou  (ex:  geração  de  código,  refatoração,  modelagem)  ●  exemplos  de  prompts  utilizados  ●  o  que  a  IA  acertou  ●  o  que  você  precisou  corrigir  
+ 
+Entidades  (seguir  nomenclatura  do  Nibo)  
+Utilize  as  seguintes  entidades  como  base:  
+●  Organization  (adaptação  para  contexto  multi-tenant  do  Orceu)  ●  Categories  ●  CostCenters  ●  Contacts  ●  Schedules  (Debit  e  Credit)  ●  Payments  
+Observação:  
+●  "Schedules  (Debit)"  →  contas  a  pagar  ●  "Schedules  (Credit)"  →  contas  a  receber  
+ 
+Escopo  funcional  mínimo  
+Commands  
+ 
+--- Page 4 ---
+ 4  ●  criar  categoria  (Categories)  ●  criar  centro  de  custo  (CostCenters)  ●  criar  contato  (Contacts)  ●  criar  agendamento  de  pagamento  (Schedules  Debit)  ●  criar  agendamento  de  recebimento  (Schedules  Credit)  ●  registrar  pagamento  ●  registrar  recebimento  ●  cancelar  agendamento  quando  permitido  
+Queries  
+●  listar  agendamentos  de  pagamento  ●  listar  agendamentos  de  recebimento  ●  ﬁltrar  por  status  (open,  paid,  overdue,  etc)  ●  ﬁltrar  por  período  ●  ﬁltrar  por  categoria  ●  ﬁltrar  por  centro  de  custo  ●  detalhar  um  agendamento  ●  consultar  resumo  ﬁnanceiro  por  período  
+ 
+Regras  de  negócio  mínimas  
+●  um  pagamento  não  pode  exceder  o  valor  do  agendamento  ●  um  recebimento  não  pode  exceder  o  valor  do  agendamento  ●  um  agendamento  totalmente  pago  não  pode  ser  cancelado  ●  o  status  deve  reﬂetir  a  situação  atual  (open,  paid,  overdue)  ●  os  dados  devem  respeitar  isolamento  por  Organization  ●  datas  devem  impactar  status  automaticamente  (ex:  overdue)  
+ 
+Requisitos  de  API  
+A  API  deve  suportar:  
+●  ﬁltros  em  queries  (inspirados  no  padrão  do  Nibo)  ●  ordenação  ●  paginação  
+Exemplo  de  parâmetros  esperados:  
+●  status  
+ 
+--- Page 5 ---
+ 5  ●  due_date_from  ●  due_date_to  ●  category_id  ●  cost_center_id  ●  contact_id  ●  page  ●  page_size  
+Não  é  necessário  implementar  OData  completo,  mas  a  estrutura  deve  permitir  
+consultas
+ 
+ﬂexíveis.
+ 
+ 
+Arquitetura  
+A  solução  deve  evidenciar:  
+●  separação  de  camadas  (domain,  application,  infrastructure,  interface)  ●  uso  de  DDD  (entidades,  regras,  invariantes)  ●  CQRS  (separação  entre  comandos  e  consultas)  
+ 
+Entregáveis  
+●  repositório  Git  ●  README  com:  ○  instruções  para  execução  ○  decisões  de  arquitetura  ○  trade-offs  ○  o  que  faria  diferente  em  produção  ●  docker-compose.yml  ●  migrations  ●  seed  mínimo  ●  API  executável  ●  documentação  dos  endpoints  ●  pasta  /docs  com  artefatos  de  IA  
+ 
+Diferenciais  
+●  testes  automatizados  ●  autenticação  (ex:  JWT  ou  header  de  Organization)  
+ 
+--- Page 6 ---
+ 6  ●  tratamento  de  idempotência  ●  estrutura  preparada  para  multi-tenant  ●  observações  de  evolução  (ex:  ﬂuxo  de  caixa,  anexos,  conciliação)  
+ 
+O  que  será  avaliado  
+●  modelagem  de  domínio  ●  clareza  arquitetural  ●  consistência  das  regras  de  negócio  ●  qualidade  de  código  ●  organização  do  projeto  ●  clareza  de  documentação  ●  capacidade  de  adaptar  uma  API  real  (Nibo)  ao  contexto  do  Orceu  ●  maturidade  no  uso  de  IA  como  ferramenta  de  desenvolvimento  
+ 
+Perguntas  obrigatórias  para  responder  no  README  
+●  Quais  foram  os  principais  trade-offs  da  sua  solução?  ●  O  que  você  faria  diferente  em  um  ambiente  de  produção?  ●  Como  sua  arquitetura  evoluiria  para  suportar:  ○  ﬂuxo  de  caixa  consolidado  ○  conciliação  bancária  ○  múltiplas  obras  simultâneas  
+ 
+Observação  ﬁnal  
+O  objetivo  não  é  copiar  a  API  do  Nibo,  mas  utilizar  sua  estrutura  como  referência  para  
+modelagem.
+ 
+Queremos  avaliar  sua  capacidade  de:  
+●  interpretar  um  sistema  real  ●  abstrair  os  conceitos  principais  ●  adaptar  para  um  novo  contexto  ●  usar  IA  com  inteligência  (não  apenas  gerar  código)  ●  tomar  decisões  técnicas  com  clareza  
+ 
