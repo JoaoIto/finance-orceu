@@ -29,27 +29,39 @@ def get_query_handler(db: Session = Depends(get_session)) -> QueryHandler:
         schedule_repo=SQLScheduleRepository(db)
     )
 
-@router.post("/debit", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/debit", 
+    response_model=ScheduleResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar Agendamento de Débito (A Pagar)",
+    responses={400: {"description": "Business Logic Violation"}}
+)
 def create_debit_schedule(
     dto: CreateScheduleRequest,
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: CommandHandler = Depends(get_command_handler)
 ):
-    try:
-        return handler.create_schedule(org_id, ScheduleType.DEBIT, dto)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Cria uma nova obrigação financeira a pagar.
+    """
+    return handler.create_schedule(org_id, ScheduleType.DEBIT, dto)
 
-@router.post("/credit", response_model=ScheduleResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/credit", 
+    response_model=ScheduleResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar Agendamento de Crédito (A Receber)",
+    responses={400: {"description": "Business Logic Violation"}}
+)
 def create_credit_schedule(
     dto: CreateScheduleRequest,
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: CommandHandler = Depends(get_command_handler)
 ):
-    try:
-        return handler.create_schedule(org_id, ScheduleType.CREDIT, dto)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Cria um novo recebível projetado.
+    """
+    return handler.create_schedule(org_id, ScheduleType.CREDIT, dto)
 
 @router.get("", response_model=List[ScheduleResponse])
 def get_schedules(
@@ -59,25 +71,37 @@ def get_schedules(
 ):
     return handler.get_schedules(org_id, status)
 
-@router.delete("/{schedule_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{schedule_id}/cancel", 
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancelar Agendamento",
+    responses={400: {"description": "Business Logic Violation"}}
+)
 def cancel_schedule(
     schedule_id: uuid.UUID,
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: CommandHandler = Depends(get_command_handler)
 ):
-    try:
-        handler.cancel_schedule(org_id, schedule_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Cancela o agendamento caso ainda não tenha sido pago.
+    """
+    handler.cancel_schedule(org_id, schedule_id)
 
-@router.post("/{schedule_id}/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{schedule_id}/payments", 
+    response_model=PaymentResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Adicionar Pagamento ao Agendamento",
+    responses={400: {"description": "Estouro Transacional ou Status Inválido"}}
+)
 def add_payment(
     schedule_id: uuid.UUID,
     dto: CreatePaymentRequest,
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: CommandHandler = Depends(get_command_handler)
 ):
-    try:
-        return handler.add_payment(org_id, schedule_id, dto)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Adiciona um pagamento a este agendamento e executa as regras 
+    de validação contra valor acima do teto.
+    """
+    return handler.add_payment(org_id, schedule_id, dto)

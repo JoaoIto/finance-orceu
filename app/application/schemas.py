@@ -60,8 +60,8 @@ class CreateContactRequest(BaseSchema):
     email: Optional[str] = None
 
 class CreateScheduleRequest(BaseSchema):
-    contact_id: uuid.UUID
-    category_id: uuid.UUID
+    contact_id: uuid.UUID = Field(..., description="ID do Contato associado a obrigação.")
+    category_id: uuid.UUID = Field(..., description="ID da Categoria (Ex: Materiais, Folha)")
     cost_center_id: uuid.UUID
     description: Optional[str] = None
     value: Decimal = Field(..., gt=0, description="Amount must be strictly positive")
@@ -69,6 +69,6 @@ class CreateScheduleRequest(BaseSchema):
     due_date: date
     
 class CreatePaymentRequest(BaseSchema):
-    value_paid: Decimal = Field(..., gt=0, description="Amount paid must be strictly positive")
-    payment_date: date
-    receipt_document: Optional[str] = None
+    value_paid: Decimal = Field(..., gt=0, description="Amount paid must be strictly positive", examples=[500.00])
+    payment_date: date = Field(..., description="Data real do recebimento/pagamento.", examples=["2026-04-02"])
+    receipt_document: Optional[str] = Field(None, description="Número de NSU, Boleto ou Cheque.", examples=["NSU-12345"])

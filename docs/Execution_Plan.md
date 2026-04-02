@@ -123,3 +123,30 @@ Por fim, o arquivo `scripts/seed_db.py` populou com sucesso o Tenant Zero:
 ### 4.4 Testabilidade Verificada
 O servidor rodou estavelmente (`uvicorn`) e executamos um `curl` de sucesso resgatando os contatos pré-semeados pelo tenant.
 Todos os mapeamentos CRUD foram acoplados nos "Routers": `basics.py` (Básicos do ERP) e `schedules.py` (Core Financeiro).
+
+---
+
+## 5. Registro de Implementação (Fase 5 Executada)
+
+Na fase final desta iteração, o foco foi garantir Segurança de Interface (Tratamento limpo de Erros), Documentação expressiva (Swagger orgânico auto-explicativo) e *Quality Assurance* através de testes enxutos `In-Memory`.
+
+### 5.1 Global Exception Handling
+O framework FastAPI foi desenhado no `main.py` para eliminar os `try/except` redundantes. Todo repasse transacional proibido que quebra regras de negócio no Domínio emite um `ValueError`. Este é então interceptado no Top-Level:
+
+```python
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=400,
+        content={"error": "Business Logic Violation", "message": str(exc)},
+    )
+```
+Assim todas as rotas (como de Pagamento) desidratam, e o payload é consistente para o Client Front-end!
+
+### 5.2 Schemas Pydantic como Documentação
+Foi inserido `examples=[...]` e `description="..."` nas validações do Pydantic (ex: propriedades de `value_paid`, `receipt_document`, `contact_id`). Isso transforma o Swagger auto-gerado em um "Tutorial Interativo" onde o body do Request já surge preenchido com dados coerentes, impedindo a adivinhação.
+
+### 5.3 Quality Assurance (Pytest Unit & E2E)
+Em `tests/` comprovamos a teoria em dois pilares:
+- **`test_domain_rules.py`**: Instancia objetos `Schedule` sem tocar em Banco de Dados (Velocidade Máxima), infundindo dinheiro irreal na Entidade apenas para provar que uma transação maior que a dívida retorna _Falso_.
+- **`test_api_endpoints.py`**: Acopla o Router num Pool `Static` do SQLite puramente In-Memory. Confirma as proteções _Restful_, confirmando por Ex-Ante a rejeição (HTTP 422 para Auth faltante) e o recebimento de JSONs com `Business Logic Violation` quando regras quebram simulando transações vivas!

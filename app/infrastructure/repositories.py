@@ -24,7 +24,7 @@ class SQLContactRepository(ContactRepository):
         self.session = session
 
     def create(self, contact: entities.Contact) -> entities.Contact:
-        db_contact = models.Contact(**contact.model_dump())
+        db_contact = models.Contact(**contact.model_dump(exclude={'created_at'}))
         self.session.add(db_contact)
         self.session.commit()
         self.session.refresh(db_contact)
@@ -39,7 +39,7 @@ class SQLCategoryRepository(CategoryRepository):
         self.session = session
 
     def create(self, category: entities.Category) -> entities.Category:
-        db_cat = models.Category(**category.model_dump())
+        db_cat = models.Category(**category.model_dump(exclude={'created_at'}))
         self.session.add(db_cat)
         self.session.commit()
         self.session.refresh(db_cat)
@@ -55,7 +55,7 @@ class SQLCostCenterRepository(CostCenterRepository):
         self.session = session
 
     def create(self, cost_center: entities.CostCenter) -> entities.CostCenter:
-        db_cc = models.CostCenter(**cost_center.model_dump())
+        db_cc = models.CostCenter(**cost_center.model_dump(exclude={'created_at'}))
         self.session.add(db_cc)
         self.session.commit()
         self.session.refresh(db_cc)

@@ -35,6 +35,19 @@ async def health_check():
     Simples endpoint garantindo orquestração Liveness do Servidor ASGI.
     """
     return {"status": "ok", "service": "orceu-finance-api"}
+@app.exception_handler(ValueError)
+async def value_error_exception_handler(request: Request, exc: ValueError):
+    """
+    Captura todos os ValueErrors lançados pela camada de Domain (Regras de Negócio)
+    e os converte em um erro 400 limpo no formato JSON.
+    """
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Business Logic Violation",
+            "message": str(exc)
+        },
+    )
 
 from app.presentation.routers import schedules, basics
 app.include_router(basics.router, prefix="/api/v1")
