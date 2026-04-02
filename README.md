@@ -47,6 +47,50 @@ A página interativa oficial (Swagger UI) estará disponível em:
 
 > **COMO AUTENTICAR**: O sistema é estritamente Multi-Tenant. Clique no botão "Try it out" em qualquer Rota (ex: `GET /api/v1/contacts`) e **obrigatoriamente** preencha o campo de Header Parâmetro `x-organization-id` com o UUID `99999999-9999-4999-9999-999999999999` gerado no Seed. Sem esse Tenant ID, a API retorna erro 400.
 
+#### 📝 Manual Prático (Fluxo Completo de Testes no Swagger)
+
+Para testar todos os pontos chave do módulo utilizando o **Tenant ID: `99999999-9999-4999-9999-999999999999`**:
+
+**Passo 1: Resgatar IDs do Domínio** 
+Para criar contas, você precisa de um Contato (Favorecido), uma Categoria e um Centro de Custo.
+- Acesse `GET /api/v1/contacts` e clique em *Execute*. Copie o `"id"` do fornecedor na listagem.
+- Acesse `GET /api/v1/categories` e copie um `"id"` de categoria.
+- Acesse `GET /api/v1/cost_centers` e copie o `"id"` da obra.
+
+**Passo 2: Criar uma Obrigação Financeira (Schedules)**
+- Abra a rota `POST /api/v1/schedules/debit`.
+- Insira o Tenant ID no Header.
+- No "Request body", insira o seguinte JSON substituindo os IDs pelos copiados no *Passo 1*:
+```json
+{
+  "contact_id": "COLE_O_UUID_AQUI",
+  "category_id": "COLE_O_UUID_AQUI",
+  "cost_center_id": "COLE_O_UUID_AQUI",
+  "description": "Fatura Mensal Cimento Portland",
+  "value": 1500.00,
+  "issue_date": "2026-04-01",
+  "due_date": "2026-05-15"
+}
+```
+- A API devolverá os dados gravados. Copie o `"id"` gerado na resposta da Schedule.
+
+**Passo 3: Validando as Regras e Criando Pagamentos**
+- Vá na rota `POST /api/v1/schedules/{schedule_id}/payments`.
+- Coloque o Tenant ID no Header e cole o `"schedule_id"` copiado na etapa superior no campo "Path parameter".
+- No "Request body", simule o abatimento da dívida parcialmente com um JSON:
+```json
+{
+  "value_paid": 500.00,
+  "payment_date": "2026-04-02",
+  "receipt_document": "NSU-XPT09"
+}
+```
+*Após Executar: Tente enviar esse mesmo `POST` mais 3 vezes e tente pagar R$ 1500 a mais... Note como o sistema (A camada de Domínio Pura Pydantic) barrará com erro `HTTP 400 Bad Request` indicando "Estouro Transacional".*
+
+**Passo 4: Confirmando o Virtual Status**
+- Se você acessar `GET /api/v1/schedules`, poderá visualizar a conta que antes estava como `"OPEN"`.
+- Graças a regra em memória, se você pagou `1500.00`, a propriedade `"status"` do objeto virá como `"PAID"` sem nunca ter engessado uma string na tabela, prevenindo bugs concorrentes!
+
 ---
 
 ## 🏗️ Arquitetura e Lógica de Domínio
