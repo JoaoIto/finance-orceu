@@ -15,33 +15,54 @@ Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu,
 
 ## 🏃 Instruções para Execução
 
-1. Certifique-se de ter o `Docker` e o `Docker Compose` instalados em sua máquina.
-2. Clone este repositório.
-3. Crie e/ou preencha um arquivo `.env` na raiz (um exemplo base estará no `.env.example`).
-4. Inicialize a orquestração do banco e API com o comando:
+1. Certifique-se de ter o `Docker` instalado para o banco de dados e o `Python 3.12+`.
+2. Clone este repositório e crie um ambiente virtual:
    ```bash
-   docker-compose up --build -d
+   python -m venv .venv
+   .\.venv\Scripts\activate # (No Windows) ou: source .venv/bin/activate (Linux/Mac)
+   pip install -r requirements.txt
    ```
-5. O Alembic será executado garantindo a tabela atualizada no Postgres. Além de um seed mínimo que poderá ser auto-injetado.
-6. A página interativa oficial do Swagger da API estará acessível via navegador em:
+3. Inicialize o contêiner do PostgreSQL na porta `5433` (configurada via docker para evitar conflitos no Host):
+   ```bash
+   docker-compose up -d db
    ```
-   http://localhost:8000/docs
+4. Rode as migrações do banco de dados utilizando a ferramenta Alembic:
+   ```bash
+   alembic upgrade head
+   ```
+5. Popule o banco com Organizações, Categorias e Contatos de teste (O **Tenant** padrão):
+   ```bash
+   python scripts/seed_db.py
+   # Você receberá no console o UUID: 99999999-9999-4999-9999-999999999999
+   ```
+6. Inicialize a API localmente:
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-*(Nota: Caso deseje rodar a API puramente em host local sem docker web, basta levantar o `docker-compose up db -d` e startar a API via `uvicorn app.main:app --reload`)*.
+### 🎮 Acessando e Testando a API (Swagger)
+
+A página interativa oficial (Swagger UI) estará disponível em:
+👉 **[http://localhost:8000/docs](http://localhost:8000/docs)**
+
+> **COMO AUTENTICAR**: O sistema é estritamente Multi-Tenant. Clique no botão "Try it out" em qualquer Rota (ex: `GET /api/v1/contacts`) e **obrigatoriamente** preencha o campo de Header Parâmetro `x-organization-id` com o UUID `99999999-9999-4999-9999-999999999999` gerado no Seed. Sem esse Tenant ID, a API retorna erro 400.
 
 ---
 
-## 🏗️ Arquitetura e Decisões
+## 🏗️ Arquitetura e Lógica de Domínio
 
-Foi decidido utilizar um Design Limpo (**Clean Architecture**) aliado ao **CQRS in-memory**.
-Isso significa que o banco de dados é um detalhe de infraestrutura e a API FastAPI atua unicamente como "Deliver mechanism/Interface".
-O fluxo das requisições transita entre:
-`Router/Endpoint -> Command Handler (Aplicação) -> Domain Entities (Negócio) -> Repository (Infraestrutura)`.
+Foi decidido utilizar um Design Limpo (**Clean Architecture**) aliado a conceitos de **CQRS**.
+Isso significa que o banco de dados é apenas um detalhe de infraestrutura e a API FastAPI atua unicamente como interface de entrega (*Delivery Mechanism*). O fluxo de criação cruza rigidamente estas camadas:
+`Router (FastAPI) -> Command Handler (Aplicação) -> Domain Entities (Regras) -> Repository (Mapeamento SQLAlchemy)`.
 
-As leituras (`GET`) ignoram as instâncias densas de "Entities" por performance pura, operando os SQLs no `Query Handlers` e devolvendo um `Pydantic Schema (DTO)` ao front-end de forma supersônica.
+### 🧠 Regra de Negócio: Anti-Estouro Transacional
+Uma das partes essenciais brevemente explicadas nesta arquitetura é o controle financeiro inteligente na Entidade central `Schedule` (Agendamento financeiro a pagar/receber). 
 
-Para o **Setup Multi-Tenant**, a decisão foi simular em FastAPI um extrator de dependência rigoroso no Cabeçalho HTTP `x-organization-id`. Agendamentos jamais vazarão para a `Organization` B se você passar no header o ID da `Organization` A.
+Quando você tenta criar um "Pagamento" (`POST /schedules/{id}/payments`), a camada de Aplicação aciona a função de autorização diretamente na classe do Domínio: `schedule.can_receive_payment(amount)`.
+Se um agendamento for de **R$ 10.00**, possuir amortizações anteriores de **R$ 8.00**, e tentar-se lançar um novo pagamento no valor de **R$ 5.00**... O Objeto de Domínio **nega a autorização imediatamente**. Não havendo necessidade de criar travas de banco via SQL, mas através de código purista, retornando um alerta direto e seguro: `"Estouro Transacional"`.
+
+### 🛡️ Multi-Tenant e Isolamento de Dados
+Para o escopo corporativo Multi-Tenant, simulamos no FastAPI um "Interpectador" (uma Dependência global) atrelada ao cabeçalho `x-organization-id`. O UUID desta organização desce de cima abaixo para todo "Repositório SQL" forçando uma injeção de trava de `WHERE organization_id = ID`. Com isso, NENHUM agendamento possivelmente "vazará" para outras construtoras, garantindo blindagem de dados vertical severa.
 
 ## 📁 Guias Aprofundados (Documentação) 
 
