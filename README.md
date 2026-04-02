@@ -2,6 +2,8 @@
 
 Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu, com foco total no gerenciamento robusto de contas a pagar (Agendamentos / Schedules Debit) e receber (Credit). A solução adota Clean Architecture, Domain-Driven Design (DDD) e CQRS com tecnologias modernas.
 
+![printSwagger.png](./public/printSwagger.png)
+
 ## Stack Tecnológica
 
 * **Linguagem**: Python 3.12+
@@ -115,6 +117,7 @@ Para análise corporativa do teste técnico e engenharia formal, verifique a pas
 * ⚙️ [Technical Spec](./docs/Technical_Spec.md)
 * 📋 [Plano de Execução](./docs/Execution_Plan.md)
 * 🤖 [Desempenho Gen-AI (Usage)](./docs/AI_Usage.md)
+* 📊 [Docs de testes](./docs/Tests_Documentation.md)
 
 ---
 
