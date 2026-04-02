@@ -56,19 +56,70 @@ Garantia de que a POC resolve o problema inicialmente proposto.
 * [x] **[DOC]** Criação do Technical_Spec.md
 * [x] **[DOC]** Criação do Execution_Plan.md
 * [ ] **[DOC]** Criação do AI_Usage.md rastreando o trabalho da IA.
-* [ ] **[DOC]** Criação do README.md completo na raiz.
-* [ ] **[INFRA]** Subir DB relacional (PostgreSQL) usando Docker (docker-compose.yml).
-* [ ] **[APP]** Scaffold das subpastas para `domain`, `app`, `infra`, e `presenter`.
-* [ ] **[DOMAIN]** Implementar modelo `Organization`, `Contact`, `Category` e `CostCenter`.
-* [ ] **[DOMAIN]** Implementar Entidades Base `Schedule` e `Payment`.
-* [ ] **[APP]** Estabelecer arquitetura base do Command Handler e Query Bus local.
-* [ ] **[INFRA]** Rodar `alembic init` e escrever Migration Mestre com relacionamentos e schemas.
-* [ ] **[INFRA]** Construção do Adapter do Repositório (SQLAlchemy).
-* [ ] **[PRESENTER]** Dependência de Multi-tenant ID por request.
-* [ ] **[API]** Endpoints `POST`: Setup completo dos básicos (Category, CostCenter, Contacts).
-* [ ] **[API]** Endpoint `POST /schedules/debit` e `POST /schedules/credit`.
-* [ ] **[API]** Endpoint `POST /schedules/{id}/payments`. Contabilizando validação de valor teto.
-* [ ] **[API]** Endpoint `DELETE /schedules/{id}/cancel`.
-* [ ] **[API]** Endpoint `GET /schedules` suportando `?status=paid&due_date_to=YYYY-MM-DD` com paginação nativa (skip/limit).
-* [ ] **[API]** Endpoint `GET /schedules/summary` agrupando valores monetários mensais.
-* [ ] **[TESTS]** Codificação de Unit Test para testar bloqueio de super-pagamento e bloqueio de estorno pago.
+* [x] **[DOC]** Criação do README.md completo na raiz.
+* [x] **[INFRA]** Subir DB relacional (PostgreSQL) usando Docker (docker-compose.yml).
+* [x] **[APP]** Scaffold das subpastas para `domain`, `app`, `infra`, e `presenter`.
+* [x] **[DOMAIN]** Implementar modelo `Organization`, `Contact`, `Category` e `CostCenter`.
+* [x] **[DOMAIN]** Implementar Entidades Base `Schedule` e `Payment`.
+* [x] **[APP]** Estabelecer arquitetura base do Command Handler e Query Bus local.
+* [x] **[INFRA]** Rodar `alembic init` e escrever Migration Mestre com relacionamentos e schemas.
+* [x] **[INFRA]** Construção do Adapter do Repositório (SQLAlchemy).
+* [x] **[PRESENTER]** Dependência de Multi-tenant ID por request.
+* [x] **[API]** Endpoints `POST`: Setup completo dos básicos (Category, CostCenter, Contacts).
+* [x] **[API]** Endpoint `POST /schedules/debit` e `POST /schedules/credit`.
+* [x] **[API]** Endpoint `POST /schedules/{id}/payments`. Contabilizando validação de valor teto.
+* [x] **[API]** Endpoint `DELETE /schedules/{id}/cancel`.
+* [x] **[API]** Endpoint `GET /schedules` suportando `?status=paid&due_date_to=YYYY-MM-DD` com paginação nativa (skip/limit).
+* [x] **[API]** Endpoint `GET /schedules/summary` agrupando valores monetários mensais.
+* [x] **[TESTS]** Codificação de Unit Test para testar bloqueio de super-pagamento e bloqueio de estorno pago.
+
+---
+
+## 4. Registro de Implementação (Fase 3 Executada)
+
+Nesta fase consolidada do projeto, unimos o Scaffold de Infraestrutura, as Definições Estritas de Domínio (DDD) e as Camadas de Interface RESTful (FastAPI), alcançando a totalidade básica dos Milestones 1 a 4.
+
+### 4.1 Estratégia de Isolamento de Domínio (DDD)
+Para garantir que a lógica de negócios ficasse separada da persistência, adotou-se o uso maciço do **Pydantic** (`app/domain/entities.py`) para tipagem pura, em oposição aos models do ORM.
+
+**Invariante de Estouro Transacional (Business Rule):**
+A regra que estipula *"O limite de pagamento não pode superar o valor do agendamento"* foi consolidada dentro do próprio Agregado `Schedule`:
+
+```python
+# app/domain/entities.py
+class Schedule(DomainEntity):
+    ...
+    value: Decimal
+    payments: List[Payment] = Field(default_factory=list)
+
+    @property
+    def total_paid(self) -> Decimal:
+        return sum(p.value_paid for p in self.payments)
+
+    def can_receive_payment(self, amount: Decimal) -> bool:
+        """ Impeditivo de Estouro Transacional """
+        return (self.total_paid + amount) <= self.value
+```
+
+O `CommandHandler` consume esse método para negar pagamentos ilegais, enviando HTTP `400 Bad Request` antes de bater no banco.
+
+### 4.2 Multi-Tenant via Header Middleware
+A segurança arquitetural Multi-Tenant foi resolvida injetando no FastAPI um `Depends` que monitora obrigatoriamente um cabeçalho HTTP:
+
+```python
+# app/presentation/dependencies.py
+async def get_organization_id(x_organization_id: str = Header(...)) -> uuid.UUID:
+    return uuid.UUID(x_organization_id)
+```
+Qualquer endpoint no sistema (como `/contacts`), imediatamente embute esse id e repassa para o Query Handler, o qual filtra a tabela no nível do Repositório Relacional: `.filter(Contact.organization_id == org_id)`.
+
+### 4.3 Database, Alembic e Seeds
+Devido a conflitos locais de portas de serviços nativos (como outra instância do postgres rodando), a arquitetura orquestrada pelo Docker utilizou a porta mapeada `5433` (no Host).
+A migration *Initial Schema* foi devidamente autogerada pelo Alembic mapeando Relacionamentos (`FOREIGN KEY` e Constraints em `RESTRICT` e `CASCADE`).
+
+Por fim, o arquivo `scripts/seed_db.py` populou com sucesso o Tenant Zero:
+`99999999-9999-4999-9999-999999999999` (Orceu Construtora Matriz).
+
+### 4.4 Testabilidade Verificada
+O servidor rodou estavelmente (`uvicorn`) e executamos um `curl` de sucesso resgatando os contatos pré-semeados pelo tenant.
+Todos os mapeamentos CRUD foram acoplados nos "Routers": `basics.py` (Básicos do ERP) e `schedules.py` (Core Financeiro).

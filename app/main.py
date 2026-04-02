@@ -36,7 +36,6 @@ async def health_check():
     """
     return {"status": "ok", "service": "orceu-finance-api"}
 
-# TODO: Include routers below
-# from app.presentation.routers import schedules, payments
-# app.include_router(schedules.router, prefix="/api/v1")
-# app.include_router(payments.router, prefix="/api/v1")
+from app.presentation.routers import schedules, basics
+app.include_router(basics.router, prefix="/api/v1")
+app.include_router(schedules.router, prefix="/api/v1")
