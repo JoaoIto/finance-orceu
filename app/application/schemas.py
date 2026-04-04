@@ -47,6 +47,24 @@ class ScheduleResponse(BaseSchema):
     total_paid: Decimal
     payments: List[PaymentResponse] = []
 
+class SchedulePaginatedResponse(BaseSchema):
+    total: int
+    page: int
+    page_size: int
+    items: List[ScheduleResponse]
+
+class SummaryItem(BaseSchema):
+    period: str
+    total_debit: Decimal
+    total_credit: Decimal
+    balance: Decimal
+
+class SummaryResponse(BaseSchema):
+    items: List[SummaryItem]
+    grand_total_debit: Decimal
+    grand_total_credit: Decimal
+    grand_balance: Decimal
+
 # Requests / Commands
 class CreateCategoryRequest(BaseSchema):
     name: str

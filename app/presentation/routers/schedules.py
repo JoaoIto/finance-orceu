@@ -1,11 +1,13 @@
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, HTTPException
+from datetime import date
+from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.presentation.dependencies import get_organization_id, get_session
 from app.application.schemas import (
-    ScheduleResponse, CreateScheduleRequest, CreatePaymentRequest, PaymentResponse
+    ScheduleResponse, CreateScheduleRequest, CreatePaymentRequest, PaymentResponse,
+    SchedulePaginatedResponse, SummaryResponse
 )
 from app.application.commands import CommandHandler
 from app.application.queries import QueryHandler
@@ -63,13 +65,52 @@ def create_credit_schedule(
     """
     return handler.create_schedule(org_id, ScheduleType.CREDIT, dto)
 
-@router.get("", response_model=List[ScheduleResponse])
+@router.get("", response_model=SchedulePaginatedResponse, summary="Listar e Filtrar Agendamentos")
 def get_schedules(
-    status: Optional[str] = None,
+    type: Optional[str] = Query(None, description="Tipo: DEBIT ou CREDIT"),
+    status: Optional[str] = Query(None, description="Status: OPEN, PAID ou OVERDUE"),
+    due_date_from: Optional[date] = Query(None, description="Data de vencimento inicial"),
+    due_date_to: Optional[date] = Query(None, description="Data de vencimento final"),
+    category_id: Optional[uuid.UUID] = Query(None, description="ID da Categoria"),
+    cost_center_id: Optional[uuid.UUID] = Query(None, description="ID do Centro de Custo"),
+    contact_id: Optional[uuid.UUID] = Query(None, description="ID do Contato"),
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(50, ge=1, le=100, description="Registros por página"),
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: QueryHandler = Depends(get_query_handler)
 ):
-    return handler.get_schedules(org_id, status)
+    total, items = handler.get_schedules(
+        org_id, type, status, due_date_from, due_date_to,
+        category_id, cost_center_id, contact_id, page, page_size
+    )
+    return SchedulePaginatedResponse(total=total, page=page, page_size=page_size, items=items)
+
+@router.get("/summary", response_model=SummaryResponse, summary="Resumo Financeiro")
+def get_summary(
+    due_date_from: Optional[date] = Query(None, description="Data de vencimento inicial"),
+    due_date_to: Optional[date] = Query(None, description="Data de vencimento final"),
+    org_id: uuid.UUID = Depends(get_organization_id),
+    handler: QueryHandler = Depends(get_query_handler)
+):
+    data = handler.get_schedule_summary(org_id, due_date_from, due_date_to)
+    
+    return SummaryResponse(
+        items=[data] if due_date_from or due_date_to else [],
+        grand_total_debit=data["total_debit"],
+        grand_total_credit=data["total_credit"],
+        grand_balance=data["balance"]
+    )
+
+@router.get("/{schedule_id}", response_model=ScheduleResponse, summary="Detalhar Agendamento")
+def get_schedule(
+    schedule_id: uuid.UUID,
+    org_id: uuid.UUID = Depends(get_organization_id),
+    handler: QueryHandler = Depends(get_query_handler)
+):
+    schedule = handler.get_schedule(org_id, schedule_id)
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Agenda não encontrada")
+    return schedule
 
 @router.delete(
     "/{schedule_id}/cancel", 

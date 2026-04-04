@@ -1,5 +1,7 @@
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from datetime import date
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -108,17 +110,79 @@ class SQLScheduleRepository(ScheduleRepository):
         if not db_sched: return None
         return self._to_domain(db_sched)
 
-    def get_all(self, org_id: uuid.UUID, status: Optional[str] = None) -> List[entities.Schedule]:
-        # Em PostgreSQL/SQLAlchemy, lidar com "Calculated Status" na query pode requerer subqueries ou CASE WHEN. 
-        # Como o volume da POC permite, filtraremos na memória para respeitar estritamente a Domain Logic, 
-        # ou construiriamos a sub-soma em SQL. Para a POC, faremos query basica + list comprehension
-        db_items = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id).all()
+    def get_all(
+        self, 
+        org_id: uuid.UUID, 
+        type: Optional[str] = None,
+        status: Optional[str] = None,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> Tuple[int, List[entities.Schedule]]:
+        
+        query = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id)
+
+        if type: query = query.filter(models.Schedule.type == type)
+        if due_date_from: query = query.filter(models.Schedule.due_date >= due_date_from)
+        if due_date_to: query = query.filter(models.Schedule.due_date <= due_date_to)
+        if category_id: query = query.filter(models.Schedule.category_id == category_id)
+        if cost_center_id: query = query.filter(models.Schedule.cost_center_id == cost_center_id)
+        if contact_id: query = query.filter(models.Schedule.contact_id == contact_id)
+
+        # Ordering
+        query = query.order_by(models.Schedule.due_date.asc())
+
+        db_items = query.all()
+        # Mapeamento e list comprehension de status virtual
         domain_items = [self._to_domain(i) for i in db_items]
         
         if status:
             domain_items = [i for i in domain_items if i.status == status]
             
-        return domain_items
+        # Paginação em memória (já que status final é iterado em list comprehension devido ao status virtual)
+        total_items = len(domain_items)
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        
+        paginated_items = domain_items[start_idx:end_idx]
+            
+        return total_items, paginated_items
+        
+    def get_summary(
+        self, 
+        org_id: uuid.UUID,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None
+    ) -> dict:
+        query = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id)
+        
+        if due_date_from: query = query.filter(models.Schedule.due_date >= due_date_from)
+        if due_date_to: query = query.filter(models.Schedule.due_date <= due_date_to)
+        
+        db_items = query.all()
+        domain_items = [self._to_domain(i) for i in db_items]
+        
+        # Agrupamento (simplificado para uma única métrica do periodo requested)
+        total_debit = Decimal(0)
+        total_credit = Decimal(0)
+        
+        for item in domain_items:
+            # Em relatório financeiro, geralmente usa-se o status, mas assumiremos tudo que tem dueDate
+            if item.type == entities.ScheduleType.DEBIT:
+                total_debit += min(item.value, item.total_paid) if item.status == 'PAID' else item.value
+            if item.type == entities.ScheduleType.CREDIT:
+                total_credit += min(item.value, item.total_paid) if item.status == 'PAID' else item.value
+                
+        return {
+            "period": f"{due_date_from} to {due_date_to}",
+            "total_debit": total_debit,
+            "total_credit": total_credit,
+            "balance": total_credit - total_debit
+        }
 
     def cancel(self, org_id: uuid.UUID, schedule_id: uuid.UUID) -> bool:
         db_sched = self.session.query(models.Schedule).filter(

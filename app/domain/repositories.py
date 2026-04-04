@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from datetime import date
 
 from app.domain.entities import Organization, Contact, Category, CostCenter, Schedule, Payment
 
@@ -46,7 +47,28 @@ class ScheduleRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self, org_id: uuid.UUID, status: Optional[str] = None) -> List[Schedule]:
+    def get_all(
+        self, 
+        org_id: uuid.UUID, 
+        type: Optional[str] = None,
+        status: Optional[str] = None,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> tuple[int, List[Schedule]]:
+        pass
+        
+    @abstractmethod
+    def get_summary(
+        self, 
+        org_id: uuid.UUID,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None
+    ) -> dict:
         pass
         
     @abstractmethod

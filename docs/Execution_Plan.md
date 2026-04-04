@@ -55,7 +55,7 @@ Garantia de que a POC resolve o problema inicialmente proposto.
 * [x] **[DOC]** Criação do PRD.md
 * [x] **[DOC]** Criação do Technical_Spec.md
 * [x] **[DOC]** Criação do Execution_Plan.md
-* [ ] **[DOC]** Criação do AI_Usage.md rastreando o trabalho da IA.
+* [x] **[DOC]** Criação do AI_Usage.md rastreando o trabalho da IA.
 * [x] **[DOC]** Criação do README.md completo na raiz.
 * [x] **[INFRA]** Subir DB relacional (PostgreSQL) usando Docker (docker-compose.yml).
 * [x] **[APP]** Scaffold das subpastas para `domain`, `app`, `infra`, e `presenter`.
@@ -69,8 +69,9 @@ Garantia de que a POC resolve o problema inicialmente proposto.
 * [x] **[API]** Endpoint `POST /schedules/debit` e `POST /schedules/credit`.
 * [x] **[API]** Endpoint `POST /schedules/{id}/payments`. Contabilizando validação de valor teto.
 * [x] **[API]** Endpoint `DELETE /schedules/{id}/cancel`.
-* [x] **[API]** Endpoint `GET /schedules` suportando `?status=paid&due_date_to=YYYY-MM-DD` com paginação nativa (skip/limit).
-* [x] **[API]** Endpoint `GET /schedules/summary` agrupando valores monetários mensais.
+* [x] **[API]** Endpoint `GET /schedules` suportando paginação nativa (skip/limit), e filtros flexíveis (status, type, due_date_from, etc).
+* [x] **[API]** Endpoint `GET /schedules/summary` agrupando valores monetários periódicos.
+* [x] **[API]** Endpoint `GET /schedules/{schedule_id}` detalhando o agendamento no padrão Rest.
 * [x] **[TESTS]** Codificação de Unit Test para testar bloqueio de super-pagamento e bloqueio de estorno pago.
 
 ---
@@ -150,3 +151,13 @@ Foi inserido `examples=[...]` e `description="..."` nas validações do Pydantic
 Em `tests/` comprovamos a teoria em dois pilares:
 - **`test_domain_rules.py`**: Instancia objetos `Schedule` sem tocar em Banco de Dados (Velocidade Máxima), infundindo dinheiro irreal na Entidade apenas para provar que uma transação maior que a dívida retorna _Falso_.
 - **`test_api_endpoints.py`**: Acopla o Router num Pool `Static` do SQLite puramente In-Memory. Confirma as proteções _Restful_, confirmando por Ex-Ante a rejeição (HTTP 422 para Auth faltante) e o recebimento de JSONs com `Business Logic Violation` quando regras quebram simulando transações vivas!
+
+---
+
+## 6. Registro de Implementação (Fase 6 - Queries Masterizadas)
+
+A última etapa envolveu o alinhamento de 100% dos requisitos de leitura exigidos pelo Teste Técnico (Filtros, Detalhes, Resumo e Paginação). 
+
+1. **Paginação Real no SQLite/Postgres:** Adição dos comandos de `page` e `page_size` nos Repositórios SQLAlchemy e retornos de classe Pydantic `SchedulePaginatedResponse`.
+2. **Consultas Complexas:** Utilização intensiva do padrão Builder de Query do SQLAlchemy injetando parâmetros condicionais de Data (`due_date_from`, `due_date_to`) e Categorias (`category_id`, `cost_center_id`).
+3. **Detail and Summary Analytics:** Construção da rota isolada `GET /schedules/{schedule_id}` validando retornos 404. Inclusão da consolidação de crédito/débito na API de Resumo via iteração performática dos dados de agregação.

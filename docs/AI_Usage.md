@@ -48,6 +48,8 @@ A IA age como um copiloto fantástico, mas o desenvolvedor sênior na orquestra�
 1. **Overscoping (Arquitetura Complexa Demais):** Naturalmente, a IA sugeriu utilizar "Event Sourcing", Filas MQ e Triggers de DB de inicio. Para uma "Prova de Conceito (POC)", foi ordenado à IA que mitigasse a complexidade no **Application Handler** optando por in-memory CQRS ou validação in-code (Clean Architecture) sem poluir a infra com Kafkas/RabbitMQs não providos como pré-requisito.
 2. **Estrutura "JWT Completo" x Multi-Tenant:** A IA inferiu a criação brutal de um serviço OAuth completo. Foi corrigido e direcionado que faríamos o isolamento multi-tenant da aplicação usando o envio de um header manual `organization_id` (Ex: `X-Organization-ID`), simulando a injeção que ocorreria num futuro *API Gateway*. Isso mantém a POC 100% sobre o foco: Agendamentos Financeiros.
 
+3. **Implementação de Queries Nativas (Ajuste Final da Fase 6):** Durante a criação inicial do plano, a IA marcou paginadores e filtros de data como prontos, mas apenas o placeholder `GET` estava lá enxugando listas via Python Memory List Comprehension. Usei a IA para iterar o código e trazer os filtros robustos e paginação transacional (LIMIT/OFFSET mascarados no Python slice / SQL native) para a "Masterização" e endpoint `summary`.
+
 ---
 
 ## 4. Conclusão do IA-Driven

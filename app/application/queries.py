@@ -1,5 +1,6 @@
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from datetime import date
 
 from app.domain.entities import Schedule, Category, CostCenter, Contact
 from app.domain.repositories import (
@@ -29,8 +30,31 @@ class QueryHandler:
     def get_contacts(self, org_id: uuid.UUID) -> List[Contact]:
         return self.contact_repo.get_all(org_id)
 
-    def get_schedules(self, org_id: uuid.UUID, status: Optional[str] = None) -> List[Schedule]:
-        return self.schedule_repo.get_all(org_id, status)
+    def get_schedules(
+        self, 
+        org_id: uuid.UUID, 
+        type: Optional[str] = None,
+        status: Optional[str] = None,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None,
+        page: int = 1,
+        page_size: int = 50
+    ) -> Tuple[int, List[Schedule]]:
+        return self.schedule_repo.get_all(
+            org_id, type, status, due_date_from, due_date_to,
+            category_id, cost_center_id, contact_id, page, page_size
+        )
         
     def get_schedule(self, org_id: uuid.UUID, schedule_id: uuid.UUID) -> Optional[Schedule]:
         return self.schedule_repo.get_by_id(org_id, schedule_id)
+        
+    def get_schedule_summary(
+        self, 
+        org_id: uuid.UUID,
+        due_date_from: Optional[date] = None,
+        due_date_to: Optional[date] = None
+    ) -> dict:
+        return self.schedule_repo.get_summary(org_id, due_date_from, due_date_to)
