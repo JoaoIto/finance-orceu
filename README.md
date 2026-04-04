@@ -3,6 +3,9 @@
 Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu, com foco total no gerenciamento robusto de contas a pagar (Agendamentos / Schedules Debit) e receber (Credit). A solução adota Clean Architecture, Domain-Driven Design (DDD) e CQRS com tecnologias modernas.
 
 ---
+![printSwagger.png](./public/printSwagger.png)
+
+---
 
 ## 🚀 Destaques do Projeto (Key Features)
 
@@ -11,8 +14,6 @@ Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu,
 *   **Virtual Status Engine:** Cálculo dinâmico de estados (`OPEN`, `PAID`, `OVERDUE`) sem redundância de dados no banco.
 *   **Multi-tenant por Design:** Isolamento rigoroso de dados entre organizações via middleware de injeção de Tenant ID.
 *   **Documentação Enterprise:** Swagger UI enriquecido com exemplos reais para teste instantâneo ("Try it out" ready).
-
-![printSwagger.png](./public/printSwagger.png)
 
 ## Stack Tecnológica
 
