@@ -120,8 +120,9 @@ class SQLScheduleRepository(ScheduleRepository):
         category_id: Optional[uuid.UUID] = None,
         cost_center_id: Optional[uuid.UUID] = None,
         contact_id: Optional[uuid.UUID] = None,
-        page: int = 1,
-        page_size: int = 50
+        skip: int = 0,
+        top: int = 50,
+        order_by: str = "dueDate"
     ) -> Tuple[int, List[entities.Schedule]]:
         
         query = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id)
@@ -133,8 +134,17 @@ class SQLScheduleRepository(ScheduleRepository):
         if cost_center_id: query = query.filter(models.Schedule.cost_center_id == cost_center_id)
         if contact_id: query = query.filter(models.Schedule.contact_id == contact_id)
 
-        # Ordering
-        query = query.order_by(models.Schedule.due_date.asc())
+        # Ordering (OData Pattern)
+        if order_by == "dueDate":
+            query = query.order_by(models.Schedule.due_date.asc())
+        elif order_by == "-dueDate":
+            query = query.order_by(models.Schedule.due_date.desc())
+        elif order_by == "value":
+            query = query.order_by(models.Schedule.value.asc())
+        elif order_by == "-value":
+            query = query.order_by(models.Schedule.value.desc())
+        else:
+            query = query.order_by(models.Schedule.due_date.asc())
 
         db_items = query.all()
         # Mapeamento e list comprehension de status virtual
@@ -143,12 +153,11 @@ class SQLScheduleRepository(ScheduleRepository):
         if status:
             domain_items = [i for i in domain_items if i.status == status]
             
-        # Paginação em memória (já que status final é iterado em list comprehension devido ao status virtual)
+        # Paginação OData In-Memory (Top e Skip)
         total_items = len(domain_items)
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
+        end_idx = skip + top
         
-        paginated_items = domain_items[start_idx:end_idx]
+        paginated_items = domain_items[skip:end_idx]
             
         return total_items, paginated_items
         

@@ -57,8 +57,9 @@ class ScheduleRepository(ABC):
         category_id: Optional[uuid.UUID] = None,
         cost_center_id: Optional[uuid.UUID] = None,
         contact_id: Optional[uuid.UUID] = None,
-        page: int = 1,
-        page_size: int = 50
+        skip: int = 0,
+        top: int = 50,
+        order_by: str = "dueDate"
     ) -> tuple[int, List[Schedule]]:
         pass
         

@@ -3,10 +3,35 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import time
 
+tags_metadata = [
+    {
+        "name": "Schedules",
+        "description": "Operações do Core Financeiro (OData Nibo Compliance) - Contas a Pagar/Receber.",
+    },
+    {
+        "name": "Basics",
+        "description": "Recursos de Apoio (Contatos, Centros de Custo e Categorias).",
+    },
+    {
+        "name": "Health",
+        "description": "Monitoramento e liveness probe do micro-serviço.",
+    },
+]
+
 app = FastAPI(
-    title="Orceu - Finance API (POC)",
-    description="Backend Module for Orceu Financial ecosystem. (Multi-Tenant Schedules & Payments)",
+    title="Orceu ERP - Financial Módulo (Nibo API Pattern)",
+    description=(
+        "**Backend Module for Orceu Financial ecosystem**.\n\n"
+        "Esta API imita as práticas listadas no Nibo API (OData Pagination: `$top`, `$skip`, `$orderBy`) "
+        "para listagens avançadas mantendo a arquitetura própria de Clean Architecture/DDD Multi-tenant.\n\n"
+        "**Autenticação Obrigatória:** `x-organization-id` no parâmetro do Header."
+    ),
     version="1.0.0",
+    contact={
+        "name": "Orceu Finance repository",
+        "url": "https://github.com/JoaoIto/finance-orceu",
+    },
+    openapi_tags=tags_metadata
 )
 
 # CORS config

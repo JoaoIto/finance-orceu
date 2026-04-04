@@ -154,10 +154,14 @@ Em `tests/` comprovamos a teoria em dois pilares:
 
 ---
 
-## 6. Registro de Implementação (Fase 6 - Queries Masterizadas)
+4. **Professional Swagger & Metadados:** Injeção de tags enriquecidas, descrições detalhadas e link de portfólio no próprio `main.py` injetado diretamente no frontend do Swagger.
 
-A última etapa envolveu o alinhamento de 100% dos requisitos de leitura exigidos pelo Teste Técnico (Filtros, Detalhes, Resumo e Paginação). 
+---
 
-1. **Paginação Real no SQLite/Postgres:** Adição dos comandos de `page` e `page_size` nos Repositórios SQLAlchemy e retornos de classe Pydantic `SchedulePaginatedResponse`.
-2. **Consultas Complexas:** Utilização intensiva do padrão Builder de Query do SQLAlchemy injetando parâmetros condicionais de Data (`due_date_from`, `due_date_to`) e Categorias (`category_id`, `cost_center_id`).
-3. **Detail and Summary Analytics:** Construção da rota isolada `GET /schedules/{schedule_id}` validando retornos 404. Inclusão da consolidação de crédito/débito na API de Resumo via iteração performática dos dados de agregação.
+## 7. Fase Final: Portfólio & Launch Ready
+
+Nesta etapa, o projeto foi blindado com documentação interativa corporativa.
+
+1. **Exemplos Reais em Schemas:** Todos os objetos de entrada (`POST`) agora possuem dados reais de exemplo no Swagger, permitindo testes sem consulta de documentação externa.
+2. **Nomenclature Refinement (Nibo Pattern):** Alinhamento total com as terminologias `$top`, `$skip` e `$orderBy` citadas na API oficial do Nibo pesquisada.
+3. **README Estratégico:** Reestruturado para destacar "Key Features", Decisões Arquiteturais e Guia de Início Rápido.

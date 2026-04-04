@@ -2,6 +2,16 @@
 
 Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu, com foco total no gerenciamento robusto de contas a pagar (Agendamentos / Schedules Debit) e receber (Credit). A solução adota Clean Architecture, Domain-Driven Design (DDD) e CQRS com tecnologias modernas.
 
+---
+
+## 🚀 Destaques do Projeto (Key Features)
+
+*   **Nibo API Compliance:** Mimetismo arquitetural do ecossistema Nibo, utilizando padrões de nomenclatura e filtragem **OData** (`$top`, `$skip`, `$orderBy`).
+*   **Domain Intelligence:** Regras de negócio protegidas no núcleo (Ex: Impedimento de sobre-pagamento e estorno de contas liquidadas).
+*   **Virtual Status Engine:** Cálculo dinâmico de estados (`OPEN`, `PAID`, `OVERDUE`) sem redundância de dados no banco.
+*   **Multi-tenant por Design:** Isolamento rigoroso de dados entre organizações via middleware de injeção de Tenant ID.
+*   **Documentação Enterprise:** Swagger UI enriquecido com exemplos reais para teste instantâneo ("Try it out" ready).
+
 ![printSwagger.png](./public/printSwagger.png)
 
 ## Stack Tecnológica
@@ -32,14 +42,14 @@ Esta é a Prova de Conceito (POC) para o Módulo Financeiro da Plataforma Orceu,
    ```bash
    alembic upgrade head
    ```
-5. Popule o banco com Organizações, Categorias e Contatos de teste (O **Tenant** padrão):
+5. Popule o banco com o Tenant Zero e dados de teste:
    ```bash
    python scripts/seed_db.py
-   # Você receberá no console o UUID: 99999999-9999-4999-9999-999999999999
+   # ID DA ORGANIZAÇÃO (Use no Header): 99999999-9999-4999-9999-999999999999
    ```
 6. Inicialize a API localmente:
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 ### 🎮 Acessando e Testando a API (Swagger)
@@ -92,6 +102,16 @@ Para criar contas, você precisa de um Contato (Favorecido), uma Categoria e um 
 **Passo 4: Confirmando o Virtual Status**
 - Se você acessar `GET /api/v1/schedules`, poderá visualizar a conta que antes estava como `"OPEN"`.
 - Graças a regra em memória, se você pagou `1500.00`, a propriedade `"status"` do objeto virá como `"PAID"` sem nunca ter engessado uma string na tabela, prevenindo bugs concorrentes!
+
+---
+
+## 🌟 Nibo API Pattern Compliance
+
+Para se assimilar da melhor maneira aos casos de uso reais que orquestram a engenharia financeira em grandes empresas, esta aplicação foi desenhada com alto acoplamento filosófico ao padrão Nibo API de integração:
+
+* **OData Filtering & Pagination:** Assim como o Nibo oficial, adotamos os modelos restritos `$skip`, `$top` e `$orderBy` como os query parameters chave da API na camada FastAPI e convertemos matematicamente para atuar nos motores offset nativos relacional.
+* **Schemas Representativos:** Padrões idênticos (`schedules/debit`, agrupadores, `CostCenters`) garantem flexibilidade no *frontend*.
+* **Engenharia de Swagger Refinada:** Adotamos descritivos empresariais no `app.main` (tags ricas, Metadados Nibo) para uma imersão instantânea e visual mais condizente aos *Portfólios Cloud* onde esse micro-serviço pode ser deployado.
 
 ---
 

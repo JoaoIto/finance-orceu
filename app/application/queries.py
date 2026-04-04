@@ -40,12 +40,13 @@ class QueryHandler:
         category_id: Optional[uuid.UUID] = None,
         cost_center_id: Optional[uuid.UUID] = None,
         contact_id: Optional[uuid.UUID] = None,
-        page: int = 1,
-        page_size: int = 50
+        skip: int = 0,
+        top: int = 50,
+        order_by: str = "dueDate"
     ) -> Tuple[int, List[Schedule]]:
         return self.schedule_repo.get_all(
             org_id, type, status, due_date_from, due_date_to,
-            category_id, cost_center_id, contact_id, page, page_size
+            category_id, cost_center_id, contact_id, skip, top, order_by
         )
         
     def get_schedule(self, org_id: uuid.UUID, schedule_id: uuid.UUID) -> Optional[Schedule]:
