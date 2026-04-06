@@ -53,17 +53,12 @@ class SchedulePaginatedResponse(BaseSchema):
     top: int
     items: List[ScheduleResponse]
 
-class SummaryItem(BaseSchema):
-    period: str
-    total_debit: Decimal
-    total_credit: Decimal
-    balance: Decimal
-
 class SummaryResponse(BaseSchema):
-    items: List[SummaryItem]
-    grand_total_debit: Decimal
-    grand_total_credit: Decimal
-    grand_balance: Decimal
+    due_date_from: Optional[date] = Field(None, description="Início do Período", examples=["2026-04-01"])
+    due_date_to: Optional[date] = Field(None, description="Fim do Período", examples=["2026-04-30"])
+    total_debit: Decimal = Field(..., examples=[2500.00])
+    total_credit: Decimal = Field(..., examples=[6000.00])
+    balance: Decimal = Field(..., examples=[3500.00])
 
 # Requests / Commands
 class CreateCategoryRequest(BaseSchema):

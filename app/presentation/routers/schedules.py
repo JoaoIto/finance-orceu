@@ -92,7 +92,7 @@ def get_schedules(
     )
     return SchedulePaginatedResponse(total=total, skip=skip, top=top, items=items)
 
-@router.get("/summary", response_model=SummaryResponse, summary="Resumo/Fluxo de Caixa Periódico", tags=["Schedules"])
+@router.get("/summary", response_model=SummaryResponse, summary="Resumo/Fluxo de Caixa (Totais)", tags=["Schedules"])
 def get_summary(
     due_date_from: Optional[date] = Query(None, description="Data de vencimento inicial"),
     due_date_to: Optional[date] = Query(None, description="Data de vencimento final"),
@@ -108,11 +108,40 @@ def get_summary(
     )
     
     return SummaryResponse(
-        items=[data] if due_date_from or due_date_to else [],
-        grand_total_debit=data["total_debit"],
-        grand_total_credit=data["total_credit"],
-        grand_balance=data["balance"]
+        due_date_from=due_date_from,
+        due_date_to=due_date_to,
+        total_debit=data["total_debit"],
+        total_credit=data["total_credit"],
+        balance=data["balance"]
     )
+
+@router.get("/detailed", response_model=SchedulePaginatedResponse, summary="Extrato Detalhado do Período", tags=["Schedules"])
+def get_detailed_schedules(
+    due_date_from: Optional[date] = Query(None, description="Data de vencimento inicial"),
+    due_date_to: Optional[date] = Query(None, description="Data de vencimento final"),
+    category_id: Optional[uuid.UUID] = Query(None, description="ID da Categoria"),
+    cost_center_id: Optional[uuid.UUID] = Query(None, description="ID do Centro de Custo"),
+    contact_id: Optional[uuid.UUID] = Query(None, description="ID do Contato"),
+    skip: int = Query(0, ge=0, description="Registros a pular"),
+    top: int = Query(50, ge=1, le=500, description="Tamanho da página"),
+    org_id: uuid.UUID = Depends(get_organization_id),
+    handler: QueryHandler = Depends(get_query_handler)
+):
+    """
+    Retorna a lista detalhada de agendamentos para o período e filtros selecionados.
+    Ideal para compor o extrato que justifica os totais do Summary.
+    """
+    total, items = handler.get_schedules(
+        org_id, 
+        due_date_from=due_date_from, 
+        due_date_to=due_date_to,
+        category_id=category_id, 
+        cost_center_id=cost_center_id, 
+        contact_id=contact_id,
+        skip=skip, 
+        top=top
+    )
+    return SchedulePaginatedResponse(total=total, skip=skip, top=top, items=items)
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse, summary="Detalhar Agendamento", tags=["Schedules"])
 def get_schedule(

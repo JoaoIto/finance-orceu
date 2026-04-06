@@ -144,6 +144,16 @@ Aqui testamos a lógica de abatimento de saldo.
 
 ---
 
-## 📊 Consulta Final de Resumo
+## 📊 Consulta Final de Resumo e Extrato (BI)
+
+Para finalizar a apresentação, mostre como o sistema gera inteligência de dados.
+
+### 4.1. Resumo Consolidado (Totais)
 - **Rota:** `GET /api/v1/schedules/summary?due_date_from=2026-04-01&due_date_to=2026-05-31`
-- **O que ver?** O sistema mostrará o consolidado de Débitos (5000), Créditos (12000) e o Saldo Projetado (7000).
+- **O que faz:** Retorna o saldo líquido e totais de entrada/saída do período.
+- **O que ver?** O retorno agora é um objeto limpo com `total_debit`, `total_credit` e `balance`. Perfeito para um Dashboard.
+
+### 4.2. Extrato Detalhado (Statement)
+- **Rota:** `GET /api/v1/schedules/detailed?due_date_from=2026-04-01&due_date_to=2026-05-31`
+- **O que faz:** Lista todos os lançamentos que compõem o resumo acima de forma paginada.
+- **O que ver?** Uma lista de agendamentos (`items`) com todos os detalhes técnicos. É a prova real que justifica os números do resumo.
