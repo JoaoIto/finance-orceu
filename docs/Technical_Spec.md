@@ -79,10 +79,109 @@ Os conceitos foram extraídos a partir da estrutura API corporativa base estabel
 
 ---
 
-## 4. Evolução (Respondendo Pergunta Obrigatória / README Base)
+---
 
-*A POC implementa as bases. O que faríamos para escalar?*
+## 5. Implementações de Destaque (Deep Dive Técnico)
 
-**1. Fluxo de Caixa Consolidado:** Em produção, adicionaríamos tabelas fato pré-agregadas (Materialized Views) ou elasticsearch para evitar o processamento de milhões de agendamentos no momento das consultas de Dashboards.
-**2. Múltiplas Obras Simultâneas:** O `CostCenter` serve como representativo atual da Obra. Em grande escala, existiria forte RBAC (Role-Based Access Control) dentro de uma `Organization` (e.g. O gerente X só pode ver "CostCenter Y" - Obras Alfa).
-**3. Conciliação Bancária:** Incorporaria APIs como Pluggy ou StarkBank para capturar `BankStatements` em uma cronjob periódica. Haveria uma camada Anti-Corruption layer tentando confrontar valor exato, data aproximada e NF entre `BankStatement` (Extrato) e o `Schedule`. O status viraria "Reconciliado Automático" caso batesse.
+Nesta seção, detalhamos os trechos de código que sustentam a robustez do Orceu Financeiro.
+
+### 5.1. Isolamento Multi-tenant (Segurança por Design)
+Para garantir que os dados de uma construtora jamais vazem para outra, utilizamos **Dependency Injection** do FastAPI para capturar o ID da organização diretamente do Header.
+
+```python
+# Arquivo: app/presentation/dependencies.py
+async def get_organization_id(x_organization_id: str = Header(...)) -> uuid.UUID:
+    """
+    Simula a extração de tenant de um token JWT.
+    Injeta o organization_id em todas as rotas e repositórios.
+    """
+    try:
+        return uuid.UUID(x_organization_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid Organization ID.")
+```
+
+### 5.2. Domínio Rico: Status Virtual & Validação (DDD)
+Diferente de sistemas CRUD tradicionais, o status de uma conta não é um campo estático no banco. Ele é calculado em tempo real, garantindo integridade total.
+
+```python
+# Arquivo: app/domain/entities.py
+class Schedule(DomainEntity):
+    @property
+    def status(self) -> ScheduleStatus:
+        if self.total_paid >= self.value:
+            return ScheduleStatus.PAID
+        if date.today() > self.due_date:
+            return ScheduleStatus.OVERDUE
+        return ScheduleStatus.OPEN
+
+    def can_receive_payment(self, amount: Decimal) -> bool:
+        """Regra de Ouro: Impede que o sistema receba pagamentos que excedam o valor original."""
+        return (self.total_paid + amount) <= self.value
+```
+
+### 5.3. CQRS: Separação de Comandos e Consultas
+O sistema separa as operações de escrita (Commands) das operações de leitura (Queries). Isso permite otimizar a performance de relatórios sem complicar a lógica de gravação.
+
+*   **Commands**: Processam regras de negócio e alteram o estado (ex: `add_payment`).
+*   **Queries**: Focadas em leitura rápida e filtros complexos (ex: `get_schedule_summary`).
+
+### 5.4. OData Compliance & Filtragem Bi (Infraestrutura)
+A camada de infraestrutura traduz os parâmetros OData (`$top`, `$skip`, `$orderBy`) para SQL dinâmico usando SQLAlchemy. Além disso, o endpoint de `/summary` já suporta filtros avançados por Categoria e Centro de Custo.
+
+```python
+# Arquivo: app/infrastructure/repositories.py
+def get_summary(self, org_id, due_date_from, due_date_to, category_id, ...):
+    query = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id)
+    
+    # Filtros Dinâmicos de BI
+    if due_date_from: query = query.filter(models.Schedule.due_date >= due_date_from)
+    if category_id: query = query.filter(models.Schedule.category_id == category_id)
+    
+    # ...agregação dos totais em memória para garantir o status dinâmico correto...
+```
+
+---
+
+## 6. Ciclo de Vida de uma Requisição (Rastreabilidade)
+
+Nesta seção, mapeamos como uma requisição "atravessa" as camadas da aplicação, demonstrando o desacoplamento e a separação de responsabilidades.
+
+### 6.1. Fluxo de Execução (Diagrama de Camadas)
+
+O fluxo abaixo ilustra o caminho de um comando de escrita (POST):
+
+```mermaid
+graph TD
+    A[Client Request JSON] -->|1. Header Filter| B(FastAPI Middleware)
+    B -->|2. Dependency Injection| C{Router}
+    C -->|3. Command| D[CommandHandler - Application]
+    D -->|4. Business Logic| E[Schedule Entity - Domain]
+    E -->|5. Repository Pattern| F[SQLRepository - Infrastructure]
+    F -->|6. SQL Commit| G[(PostgreSQL)]
+```
+
+### 6.2. Mapeamento de Funcionalidades por Camada
+
+A tabela abaixo relaciona os principais endpoints com as regras de negócio e infraestrutura envolvidas:
+
+| Endpoint | Interface (Presentation) | Lógica (Application/CQRS) | Regra de Domínio (Business Logic) | Persistência (Infrastructure) |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST /contacts` | `basics.create_contact` | `CommandHandler.create_contact` | Validação de Schema (Pydantic) | `SQLContactRepository` |
+| `POST /schedules/debit` | `schedules.create_debit` | `CommandHandler.create_schedule` | Status inicial `OPEN` | `SQLScheduleRepository` |
+| `POST /payments` | `schedules.add_payment` | `CommandHandler.add_payment` | `Schedule.can_receive_payment` | `SQLPaymentRepository` |
+| `DELETE /cancel` | `schedules.cancel_schedule` | `CommandHandler.cancel_schedule` | `Schedule.status != PAID` | `SQLScheduleRepository` |
+| `GET /summary` | `schedules.get_summary` | `QueryHandler.get_summary` | Cálculos de Agregação / BI | `SQLScheduleRepository` |
+| `GET /detailed` | `schedules.get_detailed` | `QueryHandler.get_schedules` | Filtragem Dinâmica OData | `SQLScheduleRepository` |
+
+### 6.3. O Fluxo de Leitura (Queries) vs Escrita (Commands)
+
+Seguindo o padrão **CQRS**, as leituras (`GET /summary`, `GET /detailed`) são otimizadas. Elas não carregam a complexidade de transações de estado da entidade, focando apenas em performance e filtragem dinâmica. 
+
+As escritas, por outro lado, são **transacionalmente seguras**. Um pagamento (`POST /payments`) nunca é gravado sem que o objeto do Domínio (`Schedule`) valide se o saldo é suficiente, protegendo a integridade dos dados antes mesmo de tocar no SQL.
+
+---
+
+## 7. Conclusão e Evolução
+
+Esta arquitetura foi desenhada para escalar. O uso de **Clean Architecture** permite que a aplicação cresça para um sistema ERP completo com segurança e testabilidade total. 🚀
