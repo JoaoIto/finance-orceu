@@ -139,6 +139,7 @@ Para análise corporativa do teste técnico e engenharia formal, verifique a pas
 * 📋 [Plano de Execução](./docs/Execution_Plan.md)
 * 🤖 [Desempenho Gen-AI (Usage)](./docs/AI_Usage.md)
 * 📊 [Docs de testes](./docs/Tests_Documentation.md)
+* 📑 [Guia de Testes Passo a Passo (POST payloads)](./docs/Test_Manual.md)
 
 ---
 
