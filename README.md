@@ -156,11 +156,18 @@ Para construir uma API concisa no contexto de uma "POC", optei por focar na entr
 * **Autenticação e CI/CD:** Uso massivo de CI no Github actions e deploy por Terraform. Validação total via Identity Provider (ex: AWS Cognito, Auth0) usando `claim` de token para capturar o `X-Organization-ID` sem chance de spoofing do Client.
 
 ### 3. Como sua arquitetura evoluiria para suportar:
-**A) Fluxo de Caixa consolidado**
-Na POC atual listamos os schedules de débito e crédito pontualmente. O passo futuro para um Fluxo Consolidado (que atua fortemente em Dashboard agregados) seria a inserção de `Materialized Views` no Postgres que consolidam todo valor por dia/mês/ano pre-calculado para leitura instantânea por rotas estelares (Sem gargalos de contagem infinita).
 
-**B) Conciliação Bancária**
-Teríamos um módulo independente ou novo Use Case que receberia (provavelmente via Open Banking APIs ou leitura de arquivo OFX) `BankTransactions`. A evolução contaria com um Agente assíncrono (*Anti-Corruption Layer*) tentando realizar `Matches` entre o "Valor X, Data Y, Contato Z" de um `Schedule` contra as transações. Se a probabilidade for alta (acima de 95% de matching), a aplicação dispara um `Command` de Payment transacional automático de status: `Reconciliado`.
+**A) Fluxo de Caixa Consolidado (Dashboards de Alta Performance)**
+Na POC atual, listamos os `Schedules` (agendamentos) de forma pontual. Para um Fluxo Consolidado (visão diária/mensal de caixa), a evolução natural seria a implementação de **Read Models otimizados** via CQRS.
+*   **Técnica:** Utilizaríamos `Materialized Views` no Postgres ou uma tabela de agregação dedicada.
+*   **Por que?** Dashboards não podem realizar "Cálculos Pesados" (Soma/Média) em milhões de linhas a cada atualização de página. Pré-consolidar esses valores por dia e categoria garante uma resposta em milissegundos, transformando a API em um motor de inteligência financeira escalável.
 
-**C) Múltiplas obras simultâneas**
-Na POC, cada "Obra" estaria tecnicamente vinculada a um `CostCenter` único. Uma organização (`Organization` mestre da construtora) englobaria N CostCenters. O Banco Relacional criado com Postgres isola essas chaves, o que permitiria, do ponto de vista do código, introduzir "Hierarquias de Organização" ou Perfilamento de Usuário. Ex: O usuário João (Role: Engineer) só tem acesso nas Queries se atrelado a IDs das obras onde atua.
+**B) Conciliação Bancária (Integração e Automação)**
+Para automatizar a baixa de títulos, introduziríamos um módulo de **Bank Integration** via Open Banking ou processadores de arquivos (OFX/CNAB).
+*   **Técnica:** Implementaríamos uma **ACL (Anti-Corruption Layer)** para isolar o nosso Domínio dos dados "sujos" e variados vindos de diferentes bancos. 
+*   **Lógica:** Um **Matching Engine** compararia o "Valor, Data e Favorecido" do extrato bancário contra os nossos `Schedules`. Ao encontrar uma coincidência (acima de 98% de score), o sistema dispararia automaticamente o comando de `Payment`, mudando o status da conta para "Liquidado" sem intervenção humana.
+
+**C) Múltiplas Obras e Hierarquias (Escalabilidade de Acesso)**
+Atualmente, o isolamento é feito por `OrganizationID`. Para suportar múltiplas obras ou filiais de forma granular, evoluiríamos para um modelo de **Hierarquia de Centros de Custo**.
+*   **Técnica:** Implementação de **RBAC (Role-Based Access Control)**.
+*   **Cenário Real:** Uma grande construtora tem 10 obras. O Engenheiro A só pode ver os custos da "Obra Solar", enquanto o Diretor Financeiro vê o consolidado de todas. O banco de dados Postgres, que já utiliza `CostCenterID`, facilitaria essa trava lógica. Bastaria associar o `UserID` aos Centros de Custo permitidos, garantindo que ninguém acesse dados financeiros de projetos alheios.
