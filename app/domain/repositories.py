@@ -68,7 +68,10 @@ class ScheduleRepository(ABC):
         self, 
         org_id: uuid.UUID,
         due_date_from: Optional[date] = None,
-        due_date_to: Optional[date] = None
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None
     ) -> dict:
         pass
         

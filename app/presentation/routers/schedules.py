@@ -96,10 +96,16 @@ def get_schedules(
 def get_summary(
     due_date_from: Optional[date] = Query(None, description="Data de vencimento inicial"),
     due_date_to: Optional[date] = Query(None, description="Data de vencimento final"),
+    category_id: Optional[uuid.UUID] = Query(None, description="ID da Categoria"),
+    cost_center_id: Optional[uuid.UUID] = Query(None, description="ID do Centro de Custo"),
+    contact_id: Optional[uuid.UUID] = Query(None, description="ID do Contato"),
     org_id: uuid.UUID = Depends(get_organization_id),
     handler: QueryHandler = Depends(get_query_handler)
 ):
-    data = handler.get_schedule_summary(org_id, due_date_from, due_date_to)
+    data = handler.get_schedule_summary(
+        org_id, due_date_from, due_date_to,
+        category_id, cost_center_id, contact_id
+    )
     
     return SummaryResponse(
         items=[data] if due_date_from or due_date_to else [],

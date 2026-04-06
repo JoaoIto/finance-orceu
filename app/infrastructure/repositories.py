@@ -165,12 +165,18 @@ class SQLScheduleRepository(ScheduleRepository):
         self, 
         org_id: uuid.UUID,
         due_date_from: Optional[date] = None,
-        due_date_to: Optional[date] = None
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None
     ) -> dict:
         query = self.session.query(models.Schedule).filter(models.Schedule.organization_id == org_id)
         
         if due_date_from: query = query.filter(models.Schedule.due_date >= due_date_from)
         if due_date_to: query = query.filter(models.Schedule.due_date <= due_date_to)
+        if category_id: query = query.filter(models.Schedule.category_id == category_id)
+        if cost_center_id: query = query.filter(models.Schedule.cost_center_id == cost_center_id)
+        if contact_id: query = query.filter(models.Schedule.contact_id == contact_id)
         
         db_items = query.all()
         domain_items = [self._to_domain(i) for i in db_items]

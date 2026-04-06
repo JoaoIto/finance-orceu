@@ -66,8 +66,8 @@ class CommandHandler:
         if not schedule:
             raise ValueError("Schedule not found")
             
-        if schedule.status == ScheduleStatus.PAID:
-            raise ValueError("Cannot cancel a schedule that is already fully paid")
+        if len(schedule.payments) > 0:
+            raise ValueError("Não é possível cancelar um agendamento que já possui pagamentos registrados. Estorne os pagamentos primeiro.")
             
         success = self.schedule_repo.cancel(org_id, schedule_id)
         if not success:

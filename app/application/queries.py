@@ -56,6 +56,12 @@ class QueryHandler:
         self, 
         org_id: uuid.UUID,
         due_date_from: Optional[date] = None,
-        due_date_to: Optional[date] = None
+        due_date_to: Optional[date] = None,
+        category_id: Optional[uuid.UUID] = None,
+        cost_center_id: Optional[uuid.UUID] = None,
+        contact_id: Optional[uuid.UUID] = None
     ) -> dict:
-        return self.schedule_repo.get_summary(org_id, due_date_from, due_date_to)
+        return self.schedule_repo.get_summary(
+            org_id, due_date_from, due_date_to,
+            category_id, cost_center_id, contact_id
+        )
